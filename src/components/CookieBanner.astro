@@ -1,0 +1,51 @@
+---
+---
+
+<div
+  id="cookie-banner"
+  class="fixed bottom-0 left-0 right-0 z-[100] bg-stone-900 border-t border-stone-700 px-6 py-5 hidden"
+  role="dialog"
+  aria-label="Zgoda na pliki cookie"
+>
+  <div class="max-w-5xl mx-auto flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between">
+    <p class="text-stone-300 text-sm font-light leading-relaxed">
+      Ta strona używa plików cookie niezbędnych do jej działania. Korzystając z niej, akceptujesz naszą
+      <a href="/polityka-prywatnosci" class="text-gold underline hover:text-gold/80 transition-colors">
+        Politykę prywatności
+      </a>.
+    </p>
+    <div class="flex gap-3 flex-shrink-0">
+      <button
+        id="cookie-decline"
+        class="text-xs tracking-[0.2em] uppercase px-5 py-2 border border-stone-600 text-stone-400 hover:border-stone-400 hover:text-stone-200 transition-all duration-200"
+      >
+        Odrzuć
+      </button>
+      <button
+        id="cookie-accept"
+        class="text-xs tracking-[0.2em] uppercase px-5 py-2 bg-gold text-stone-950 hover:bg-gold-dark transition-colors duration-200"
+      >
+        Akceptuję
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const COOKIE_KEY = 'kamila_cookie_consent';
+  const banner = document.getElementById('cookie-banner')!;
+
+  if (!localStorage.getItem(COOKIE_KEY)) {
+    banner.classList.remove('hidden');
+  }
+
+  document.getElementById('cookie-accept')!.addEventListener('click', () => {
+    localStorage.setItem(COOKIE_KEY, 'accepted');
+    banner.classList.add('hidden');
+  });
+
+  document.getElementById('cookie-decline')!.addEventListener('click', () => {
+    localStorage.setItem(COOKIE_KEY, 'declined');
+    banner.classList.add('hidden');
+  });
+</script>

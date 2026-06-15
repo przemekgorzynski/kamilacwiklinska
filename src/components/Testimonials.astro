@@ -1,0 +1,108 @@
+---
+import { testimonials } from '../data/content';
+
+const PER_PAGE = 4;
+const pages: typeof testimonials[] = [];
+for (let i = 0; i < testimonials.length; i += PER_PAGE) {
+  pages.push(testimonials.slice(i, i + PER_PAGE));
+}
+---
+
+<section id="opinie" class="py-24 lg:py-32 bg-stone-900">
+  <div class="max-w-6xl mx-auto px-6 lg:px-8">
+
+    <div class="text-center mb-16">
+      <p class="text-xs tracking-[0.3em] uppercase text-gold mb-3">Co mówią klienci</p>
+      <h2 class="font-serif text-4xl md:text-5xl font-light text-stone-100">Opinie</h2>
+    </div>
+
+    <!-- Pages -->
+    <div id="opinie-container" class="relative" style={`min-height: 340px;`}>
+      {pages.map((page, pi) => (
+        <div
+          class="opinie-page grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 transition-opacity duration-700"
+          style={pi === 0 ? 'opacity:1;' : 'opacity:0;position:absolute;inset:0;pointer-events:none;'}
+          data-page={pi}
+        >
+          {page.map(review => (
+            <div class="bg-stone-800 p-8 lg:p-10 relative">
+              <div class="absolute top-6 left-8 font-serif text-6xl text-gold/25 leading-none select-none">&ldquo;</div>
+              <p class="font-sans text-stone-300 font-light leading-relaxed text-sm md:text-base mt-4 relative z-10">
+                {review.text}
+              </p>
+              <div class="mt-6 pt-6 border-t border-stone-700 flex items-center gap-3">
+                <div class="w-9 h-9 rounded-full bg-gold/20 flex items-center justify-center flex-shrink-0">
+                  <span class="font-serif text-gold font-semibold text-sm">{review.name.charAt(0)}</span>
+                </div>
+                <p class="font-sans text-sm font-semibold text-stone-200 tracking-wide">{review.name}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+
+    <!-- Dots -->
+    <div class="flex justify-center gap-2 mt-10">
+      {pages.map((_, pi) => (
+        <button
+          class="opinie-dot h-2 rounded-full transition-all duration-300 border-none cursor-pointer"
+          style={pi === 0 ? 'width:1.5rem;background:#b08d57;' : 'width:0.5rem;background:rgba(255,255,255,0.2);'}
+          data-page={pi}
+          aria-label={`Strona opinii ${pi + 1}`}
+        />
+      ))}
+    </div>
+
+  </div>
+</section>
+
+<script>
+  const INTERVAL = 10000;
+
+  const pagesEls = document.querySelectorAll<HTMLElement>('.opinie-page');
+  const dots     = document.querySelectorAll<HTMLButtonElement>('.opinie-dot');
+  let current    = 0;
+  let timer: ReturnType<typeof setInterval>;
+
+  function goTo(index: number) {
+    pagesEls[current].style.opacity = '0';
+    pagesEls[current].style.position = 'absolute';
+    pagesEls[current].style.pointerEvents = 'none';
+
+    dots[current].style.width = '0.5rem';
+    dots[current].style.background = 'rgba(255,255,255,0.2)';
+
+    current = index;
+
+    pagesEls[current].style.opacity = '1';
+    pagesEls[current].style.position = '';
+    pagesEls[current].style.pointerEvents = '';
+
+    dots[current].style.width = '1.5rem';
+    dots[current].style.background = '#b08d57';
+  }
+
+  function next() {
+    goTo((current + 1) % pagesEls.length);
+  }
+
+  function startTimer() {
+    timer = setInterval(next, INTERVAL);
+  }
+
+  dots.forEach(dot => {
+    dot.addEventListener('click', () => {
+      clearInterval(timer);
+      goTo(Number(dot.dataset.page));
+      startTimer();
+    });
+  });
+
+  startTimer();
+
+  // Pause on hover
+  const section = document.getElementById('opinie')!;
+  section.addEventListener('mouseenter', () => clearInterval(timer));
+  section.addEventListener('mouseleave', startTimer);
+</script>

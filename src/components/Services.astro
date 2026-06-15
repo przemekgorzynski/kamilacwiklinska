@@ -1,0 +1,32 @@
+---
+import { services } from '../data/content';
+---
+
+<section id="uslugi" class="py-24 lg:py-32 bg-stone-900">
+  <div class="max-w-6xl mx-auto px-6 lg:px-8">
+
+    <div class="text-center mb-16">
+      <p class="text-xs tracking-[0.3em] uppercase text-gold mb-3">Co oferuję</p>
+      <h2 class="font-serif text-4xl md:text-5xl font-light text-stone-100">Usługi</h2>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-8">
+      {services.map(service => (
+        <div class="group flex flex-col items-center text-center p-6 rounded-sm hover:bg-stone-800 transition-colors duration-300">
+          <div class="text-gold mb-5 group-hover:scale-110 transition-transform duration-300" set:html={service.icon} />
+          <h3 class="font-serif text-lg font-semibold text-stone-100 mb-3">{service.name}</h3>
+          <p class="text-sm font-light text-stone-400 leading-relaxed">{service.description}</p>
+        </div>
+      ))}
+    </div>
+
+    <div class="text-center mt-14">
+      <a
+        href="#kontakt"
+        class="inline-block bg-gold text-white text-xs tracking-[0.25em] uppercase px-10 py-4 hover:bg-gold-dark transition-colors duration-300"
+      >
+        Zapytaj o termin
+      </a>
+    </div>
+  </div>
+</section>

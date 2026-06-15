@@ -1,0 +1,147 @@
+---
+const INSTAGRAM_URL = 'https://www.instagram.com/fotografiakamilacwiklinska/';
+---
+
+<section id="instagram" class="py-20 bg-stone-900 overflow-hidden">
+  <div class="text-center mb-10 px-6">
+    <a
+      href={INSTAGRAM_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="inline-flex items-center gap-2 text-stone-400 hover:text-white transition-colors mb-4 text-sm tracking-widest"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+      </svg>
+      @fotografiakamilacwiklinska
+    </a>
+    <h2 class="font-serif text-3xl md:text-4xl font-light text-stone-100 mb-6">Obserwuj mnie na Instagramie</h2>
+    <a
+      href={INSTAGRAM_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="inline-flex items-center gap-2 px-8 py-3 text-xs tracking-[0.25em] uppercase border border-stone-600 text-stone-300 hover:border-white hover:text-white transition-all duration-300"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+      </svg>
+      Obserwuj
+    </a>
+  </div>
+
+  <!-- Carousel -->
+  <div
+    id="ig-viewport"
+    class="overflow-hidden cursor-pointer"
+    style="mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);"
+  >
+    <div id="ig-track" class="flex gap-3" style="width: max-content;">
+      <!-- images injected by JS -->
+    </div>
+  </div>
+</section>
+
+<style is:global>
+  @keyframes ig-scroll {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+  .ig-running { animation: ig-scroll var(--ig-dur, 40s) linear infinite; }
+  .ig-paused  { animation-play-state: paused; }
+</style>
+
+<script>
+  const INSTAGRAM_URL = 'https://www.instagram.com/fotografiakamilacwiklinska/';
+  const GALLERY_BASE  = '/images/gallery/';
+  const IMAGE_RE      = /\.(jpg|jpeg|png|webp|gif|avif)$/i;
+  const EXCLUDED      = new Set(['back']);
+  const PER_CAT       = 2;
+  const IMG_SIZE      = 260; // px — square thumbnail size
+
+  const track    = document.getElementById('ig-track')!;
+  const viewport = document.getElementById('ig-viewport')!;
+
+  async function listDir(url: string): Promise<{ name: string; type: string }[]> {
+    const res = await fetch(url);
+    return res.ok ? res.json() : [];
+  }
+
+  function shuffle<T>(arr: T[]): T[] {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function makeThumb(src: string): HTMLAnchorElement {
+    const a = document.createElement('a');
+    a.href = INSTAGRAM_URL;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.style.cssText = `display:block;width:${IMG_SIZE}px;height:${IMG_SIZE}px;flex-shrink:0;overflow:hidden;position:relative;`;
+
+    const img = document.createElement('img');
+    img.src = src;
+    img.alt = '';
+    img.loading = 'lazy';
+    img.style.cssText = 'width:100%;height:100%;object-fit:cover;transition:transform 0.4s;display:block;';
+
+    // Hover overlay
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:absolute;inset:0;background:rgba(0,0,0,0);transition:background 0.3s;display:flex;align-items:center;justify-content:center;';
+    const icon = document.createElement('div');
+    icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0;transition:opacity 0.3s;"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>`;
+    overlay.appendChild(icon);
+
+    a.addEventListener('mouseenter', () => {
+      img.style.transform = 'scale(1.05)';
+      overlay.style.background = 'rgba(0,0,0,0.45)';
+      (icon.firstChild as HTMLElement).style.opacity = '1';
+    });
+    a.addEventListener('mouseleave', () => {
+      img.style.transform = 'scale(1)';
+      overlay.style.background = 'rgba(0,0,0,0)';
+      (icon.firstChild as HTMLElement).style.opacity = '0';
+    });
+
+    a.appendChild(img);
+    a.appendChild(overlay);
+    return a;
+  }
+
+  async function load() {
+    const entries = await listDir(GALLERY_BASE);
+    const dirs = entries.filter(e => e.type === 'directory' && !EXCLUDED.has(e.name)).map(e => e.name);
+
+    const imageSrcs: string[] = [];
+    const results = await Promise.allSettled(
+      dirs.map(async dir => {
+        const files = await listDir(`${GALLERY_BASE}${dir}/`);
+        return shuffle(files.filter(f => f.type === 'file' && IMAGE_RE.test(f.name)))
+          .slice(0, PER_CAT)
+          .map(f => `${GALLERY_BASE}${dir}/${f.name}`);
+      })
+    );
+    results.forEach(r => { if (r.status === 'fulfilled') imageSrcs.push(...r.value); });
+
+    if (imageSrcs.length === 0) return;
+
+    const shuffled = shuffle(imageSrcs);
+
+    // Build track — duplicate for seamless infinite loop
+    [...shuffled, ...shuffled].forEach(src => track.appendChild(makeThumb(src)));
+
+    // Set animation duration based on count
+    const dur = shuffled.length * 4;
+    track.style.setProperty('--ig-dur', `${dur}s`);
+    track.classList.add('ig-running');
+
+    // Pause on hover
+    viewport.addEventListener('mouseenter', () => track.classList.add('ig-paused'));
+    viewport.addEventListener('mouseleave', () => track.classList.remove('ig-paused'));
+  }
+
+  load();
+</script>

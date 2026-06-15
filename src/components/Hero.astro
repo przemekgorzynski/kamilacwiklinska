@@ -1,0 +1,114 @@
+---
+---
+
+<section id="hero" style="position:relative;height:100vh;min-height:600px;overflow:hidden;background:#1c1c1c;">
+
+  <div id="hero-slides" style="position:absolute;inset:0;"></div>
+
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,0.45);z-index:1;"></div>
+
+  <div style="position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:0 1.5rem;">
+    <p class="font-sans text-xs tracking-[0.35em] uppercase text-white/70 mb-4">Studio Fotograficzne</p>
+    <h1 class="font-serif text-5xl md:text-7xl lg:text-8xl font-light text-white mb-6 leading-tight">
+      Kamila<br /><em>Ćwiklińska</em>
+    </h1>
+    <p class="font-sans text-sm md:text-base font-light tracking-widest text-white/80 mb-10 uppercase">
+      Fotograf z pasji
+    </p>
+    <a href="#kontakt" class="inline-block border border-white/60 text-white text-xs tracking-[0.25em] uppercase px-8 py-3 hover:bg-white hover:text-stone-900 transition-all duration-300">
+      Umów sesję
+    </a>
+  </div>
+
+  <div id="hero-dots" style="position:absolute;bottom:2rem;left:50%;transform:translateX(-50%);z-index:2;display:flex;gap:0.5rem;"></div>
+
+  <div class="absolute bottom-8 right-8 z-10 hidden md:flex flex-col items-center gap-2" style="z-index:2;">
+    <span class="text-white/50 text-[10px] tracking-[0.3em] uppercase rotate-90 origin-center mb-6">Scroll</span>
+    <div class="w-px h-16 bg-gradient-to-b from-white/50 to-transparent"></div>
+  </div>
+</section>
+
+<script>
+  const IMAGE_RE = /\.(jpg|jpeg|png|webp|gif|avif)$/i;
+  const BACK_URL = '/back/';
+
+  const slidesEl = document.getElementById('hero-slides')!;
+  const dotsEl = document.getElementById('hero-dots')!;
+
+  let slides: HTMLElement[] = [];
+  let dots: HTMLButtonElement[] = [];
+  let current = 0;
+  let timer: ReturnType<typeof setInterval>;
+
+  function setSlide(el: HTMLElement, visible: boolean) {
+    el.style.opacity = visible ? '1' : '0';
+  }
+
+  function setDot(btn: HTMLButtonElement, active: boolean) {
+    btn.style.width = active ? '1.5rem' : '0.5rem';
+    btn.style.background = active ? 'white' : 'rgba(255,255,255,0.4)';
+  }
+
+  function goTo(index: number) {
+    setSlide(slides[current], false);
+    setDot(dots[current], false);
+    current = index;
+    setSlide(slides[current], true);
+    setDot(dots[current], true);
+  }
+
+  function startTimer() {
+    if (slides.length <= 1) return;
+    timer = setInterval(() => goTo((current + 1) % slides.length), 10000);
+  }
+
+  function buildSlider(srcs: string[]) {
+    srcs.forEach((src, i) => {
+      const slide = document.createElement('div');
+      slide.style.cssText = `position:absolute;inset:0;opacity:${i === 0 ? '1' : '0'};transition:opacity 1s;`;
+
+      const img = document.createElement('img');
+      img.src = src;
+      img.alt = '';
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+      img.loading = i === 0 ? 'eager' : 'lazy';
+
+      slide.appendChild(img);
+      slidesEl.appendChild(slide);
+      slides.push(slide);
+
+      if (srcs.length > 1) {
+        const dot = document.createElement('button');
+        dot.style.cssText = 'height:0.5rem;border-radius:9999px;border:none;cursor:pointer;transition:all 0.3s;';
+        setDot(dot, i === 0);
+        dot.setAttribute('aria-label', `Slajd ${i + 1}`);
+        dot.addEventListener('click', () => { clearInterval(timer); goTo(i); startTimer(); });
+        dotsEl.appendChild(dot);
+        dots.push(dot);
+      }
+    });
+
+    startTimer();
+  }
+
+  async function load() {
+    try {
+      const res = await fetch(BACK_URL);
+      if (!res.ok) throw new Error(`${res.status}`);
+      const entries: { name: string; type: string }[] = await res.json();
+      const srcs = entries
+        .filter(e => e.type === 'file' && IMAGE_RE.test(e.name))
+        .map(e => `${BACK_URL}${e.name}`);
+      if (srcs.length === 0) throw new Error('empty');
+      buildSlider(srcs);
+    } catch (e) {
+      console.warn('Hero: could not load back/ images', e);
+    }
+  }
+
+  load();
+
+  const hero = document.getElementById('hero')!;
+  hero.addEventListener('mouseenter', () => clearInterval(timer));
+  hero.addEventListener('mouseleave', startTimer);
+</script>
