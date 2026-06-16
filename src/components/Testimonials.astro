@@ -17,11 +17,11 @@ for (let i = 0; i < testimonials.length; i += PER_PAGE) {
     </div>
 
     <!-- Pages -->
-    <div id="opinie-container" class="relative" style={`min-height: 340px;`}>
+    <div id="opinie-container" class="grid">
       {pages.map((page, pi) => (
         <div
           class="opinie-page grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 transition-opacity duration-700"
-          style={pi === 0 ? 'opacity:1;' : 'opacity:0;position:absolute;inset:0;pointer-events:none;'}
+          style={`grid-area:1/1;opacity:${pi === 0 ? '1' : '0'};${pi === 0 ? '' : 'pointer-events:none;'}`}
           data-page={pi}
         >
           {page.map(review => (
@@ -67,7 +67,6 @@ for (let i = 0; i < testimonials.length; i += PER_PAGE) {
 
   function goTo(index: number) {
     pagesEls[current].style.opacity = '0';
-    pagesEls[current].style.position = 'absolute';
     pagesEls[current].style.pointerEvents = 'none';
 
     dots[current].style.width = '0.5rem';
@@ -76,7 +75,6 @@ for (let i = 0; i < testimonials.length; i += PER_PAGE) {
     current = index;
 
     pagesEls[current].style.opacity = '1';
-    pagesEls[current].style.position = '';
     pagesEls[current].style.pointerEvents = '';
 
     dots[current].style.width = '1.5rem';

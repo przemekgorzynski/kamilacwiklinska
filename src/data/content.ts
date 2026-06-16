@@ -118,14 +118,6 @@ export const testimonials = [
     name: 'Karolina i Michał Nowak',
     text: 'Kamila uwieczniła nasz ślub w sposób, o jakim marzyliśmy. Zdjęcia są pełne emocji i naturalności. Każde ujęcie to kawałek naszej historii – dziękujemy z całego serca!',
   },
-  {
-    name: 'Joanna Kaczmarek',
-    text: 'Zamawiałam sesję noworodkową dla córeczki i jestem absolutnie zachwycona. Kamila ma niesamowite wyczucie i cierpliwość. Zdjęcia są delikatne, piękne i pełne miłości.',
-  },
-  {
-    name: 'Dariusz Lewandowski',
-    text: 'Profesjonalizm na najwyższym poziomie. Kamila doskonale przygotowała nas do sesji, a efekty końcowe przeszły nasze najśmielsze oczekiwania. Wrócimy na pewno!',
-  },
 ];
 
 export const contact = {
