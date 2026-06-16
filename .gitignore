@@ -2,5 +2,3 @@ node_modules/
 dist/
 .astro/
 
-# Gallery images go on the k3s node via hostPath — not baked into the image
-public/images/*/
