@@ -15,9 +15,9 @@
 
     <div id="gallery-status" class="hidden text-center text-stone-400 text-sm py-12"></div>
 
-    <div id="gallery-grid" class="columns-2 md:columns-3 lg:columns-4 gap-3">
-      {Array.from({ length: 12 }).map((_, i) => (
-        <div class="break-inside-avoid mb-3 bg-stone-800 animate-pulse" style={`height:${i % 3 === 0 ? 300 : 220}px`}></div>
+    <div id="gallery-grid" class="grid grid-cols-2 md:grid-cols-3 gap-3 lg:gap-4">
+      {Array.from({ length: 6 }).map(() => (
+        <div class="aspect-[4/5] bg-stone-800 animate-pulse"></div>
       ))}
     </div>
   </div>
@@ -48,9 +48,23 @@
 </style>
 
 <script>
-  const SAMPLE = 3;
+  const PREVIEW_COUNT = 6;   // random photos across all categories in the default view
+  const CATEGORY_LIMIT = 6;  // photos shown on-page per category (rest in lightbox)
   const IMAGE_RE = /\.(jpg|jpeg|png|webp|gif|avif)$/i;
   const GALLERY_BASE = '/images/gallery/';
+
+  // Folder slug -> display name (folders are lowercase/unaccented)
+  const LABELS: Record<string, string> = {
+    rodzine: 'Rodzinne',
+    plenerowe: 'Plenerowe',
+    ciazowe: 'Ciążowe',
+    slubne: 'Ślubne',
+    kobiece: 'Kobiece',
+    noworodkowe: 'Noworodkowe',
+    swieta: 'Świąteczne',
+    urodziny: 'Urodziny',
+  };
+  const labelFor = (slug: string) => LABELS[slug] ?? slug.charAt(0).toUpperCase() + slug.slice(1);
 
   interface NginxEntry { name: string; type: 'file' | 'directory'; mtime: string; size: number; }
   interface GalleryImage { category: string; label: string; src: string; }
@@ -83,8 +97,8 @@
 
   function renderFilters(categories: string[]) {
     filterBar.innerHTML = '';
-    filterBar.appendChild(makeBtn('all', 'Mix', true));
-    categories.forEach(cat => filterBar.appendChild(makeBtn(cat, cat, false)));
+    filterBar.appendChild(makeBtn('all', 'Wybrane', true));
+    categories.forEach(cat => filterBar.appendChild(makeBtn(cat, labelFor(cat), false)));
   }
 
   function makeBtn(id: string, label: string, active: boolean): HTMLButtonElement {
@@ -94,41 +108,53 @@
     btn.addEventListener('click', () => {
       document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      renderGrid(id === 'all' ? previewImages : (byCategory.get(id) ?? []));
+      if (id === 'all') {
+        renderGrid(previewImages, previewImages);
+      } else {
+        const full = byCategory.get(id) ?? [];
+        renderGrid(full.slice(0, CATEGORY_LIMIT), full);
+      }
     });
     return btn;
   }
 
   // ── Grid ────────────────────────────────────────────────────────────────────
 
-  function renderGrid(images: GalleryImage[]) {
+  // displayImages: tiles shown on the page (a prefix of lbImages)
+  // lbImages: the full set the lightbox navigates through
+  function renderGrid(displayImages: GalleryImage[], lbImages: GalleryImage[]) {
     grid.innerHTML = '';
-    if (images.length === 0) {
+    if (displayImages.length === 0) {
       showStatus('Brak zdjęć w tej kategorii.');
       return;
     }
     hideStatus();
 
-    images.forEach((img, i) => {
-      const item = document.createElement('div');
-      item.className = 'break-inside-avoid mb-3';
+    const hidden = lbImages.length - displayImages.length;
 
+    displayImages.forEach((img, i) => {
       const btn = document.createElement('button');
-      btn.className = 'w-full block overflow-hidden group';
+      btn.className = 'group relative block w-full aspect-[4/5] overflow-hidden bg-stone-900';
       btn.setAttribute('aria-label', img.label);
 
       const el = document.createElement('img');
       el.src = img.src;
       el.alt = img.label;
-      el.className = 'w-full h-auto object-cover group-hover:scale-105 transition-transform duration-500';
+      el.className = 'w-full h-full object-cover group-hover:scale-105 transition-transform duration-700';
       el.loading = 'lazy';
-      el.onerror = () => item.remove();
-
+      el.onerror = () => btn.remove();
       btn.appendChild(el);
-      item.appendChild(btn);
-      grid.appendChild(item);
 
-      btn.addEventListener('click', () => openLightbox(i, images));
+      // On the last tile, show how many more photos are in the lightbox
+      if (i === displayImages.length - 1 && hidden > 0) {
+        const more = document.createElement('div');
+        more.className = 'absolute inset-0 flex items-center justify-center bg-black/55 text-white font-serif text-2xl tracking-wide transition-colors duration-300 group-hover:bg-black/65';
+        more.textContent = `+${hidden}`;
+        btn.appendChild(more);
+      }
+
+      grid.appendChild(btn);
+      btn.addEventListener('click', () => openLightbox(i, lbImages));
     });
   }
 
@@ -154,23 +180,27 @@
             cat,
             images: files
               .filter(f => f.type === 'file' && IMAGE_RE.test(f.name))
-              .map(f => ({ category: cat, label: cat, src: `${GALLERY_BASE}${cat}/${f.name}` })),
+              .map(f => ({ category: cat, label: labelFor(cat), src: `${GALLERY_BASE}${cat}/${f.name}` })),
           };
         })
       );
 
       const populated: string[] = [];
+      const allImages: GalleryImage[] = [];
       results.forEach(r => {
         if (r.status === 'fulfilled' && r.value.images.length > 0) {
           byCategory.set(r.value.cat, r.value.images);
-          previewImages.push(...randomSample(r.value.images, SAMPLE));
+          allImages.push(...r.value.images);
           populated.push(r.value.cat);
         }
       });
 
+      // Default view: a random selection from across all categories
+      previewImages = randomSample(allImages, PREVIEW_COUNT);
+
       renderFilters(populated);
 
-      renderGrid(previewImages);
+      renderGrid(previewImages, previewImages);
 
     } catch (err) {
       console.error(err);
