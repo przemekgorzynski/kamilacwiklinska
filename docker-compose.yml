@@ -6,7 +6,7 @@ services:
     image: kamilacwiklinska:local
     container_name: kamilacwiklinska
     ports:
-      - "8080:80"
+      - "80:80"
     restart: unless-stopped
     # The gallery photos are baked into the image. To serve photos from the
     # host instead (as in production), uncomment and point at your folder:
