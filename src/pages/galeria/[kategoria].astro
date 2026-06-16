@@ -1,0 +1,169 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { categories, labelFor } from '../../data/categories';
+
+export function getStaticPaths() {
+  return categories.map(c => ({
+    params: { kategoria: c.slug },
+    props: { label: c.label, folders: c.folders },
+  }));
+}
+
+const { label, folders } = Astro.props as { label: string; folders: string[] };
+---
+
+<Layout
+  title={`${label} – Galeria – Studio Fotograficzne Kamila Ćwiklińska`}
+  description={`Galeria zdjęć z kategorii ${label.toLowerCase()} – Studio Fotograficzne Kamila Ćwiklińska.`}
+>
+  <div class="min-h-screen bg-stone-950 text-stone-300">
+
+    <!-- Nav back -->
+    <header class="bg-stone-900 border-b border-stone-800 px-6 py-4">
+      <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+        <a href="/#galeria" class="inline-flex items-center gap-2 text-gold hover:text-gold/80 transition-colors text-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+          </svg>
+          Powrót do galerii
+        </a>
+        <a href="/" aria-label="Strona główna">
+          <img src="/images/logo.png" alt="Kamila Ćwiklińska Fotografia" class="h-9 w-auto" width="159" height="90" />
+        </a>
+      </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-6 lg:px-8 py-16 lg:py-24">
+      <div class="text-center mb-12">
+        <p class="text-xs tracking-[0.3em] uppercase text-gold mb-3">Galeria</p>
+        <h1 class="font-serif text-4xl md:text-5xl font-light text-stone-100">{label}</h1>
+      </div>
+
+      <div id="cat-status" class="hidden text-center text-stone-400 text-sm py-12"></div>
+
+      <div id="cat-grid" class="grid grid-cols-2 md:grid-cols-3 gap-3 lg:gap-4" data-folders={JSON.stringify(folders)}>
+        {Array.from({ length: 9 }).map(() => (
+          <div class="aspect-[4/5] bg-stone-800 animate-pulse"></div>
+        ))}
+      </div>
+    </main>
+  </div>
+
+  <!-- Lightbox -->
+  <div id="lightbox" class="fixed inset-0 z-50 hidden bg-black/95 items-center justify-center" role="dialog" aria-modal="true">
+    <button id="lb-close" class="absolute top-4 right-4 text-white/70 hover:text-white p-2" aria-label="Zamknij">
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+    <button id="lb-prev" class="absolute left-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white p-2" aria-label="Poprzednie">
+      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+    </button>
+    <div class="w-full h-full flex items-center justify-center p-12 md:p-20">
+      <img id="lb-img" src="" alt="" class="max-w-full max-h-full object-contain"/>
+    </div>
+    <button id="lb-next" class="absolute right-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white p-2" aria-label="Następne">
+      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    </button>
+    <div id="lb-counter" class="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/50 text-xs tracking-widest"></div>
+  </div>
+
+  <style>
+    #lightbox:not(.hidden) { display: flex; }
+  </style>
+
+  <script>
+    const IMAGE_RE = /\.(jpg|jpeg|png|webp|gif|avif)$/i;
+    const GALLERY_BASE = '/images/gallery/';
+
+    interface NginxEntry { name: string; type: 'file' | 'directory'; }
+
+    const grid = document.getElementById('cat-grid')!;
+    const status = document.getElementById('cat-status')!;
+    const folders: string[] = JSON.parse(grid.dataset.folders ?? '[]');
+    const label = (document.querySelector('h1')?.textContent ?? '').trim();
+
+    let images: string[] = [];
+
+    function showStatus(msg: string) { status.textContent = msg; status.classList.remove('hidden'); }
+
+    async function listFolder(folder: string): Promise<string[]> {
+      const res = await fetch(`${GALLERY_BASE}${folder}/`);
+      if (!res.ok) return [];
+      const entries: NginxEntry[] = await res.json();
+      return entries
+        .filter(e => e.type === 'file' && IMAGE_RE.test(e.name))
+        .map(e => `${GALLERY_BASE}${folder}/${e.name}`);
+    }
+
+    function interleave<T>(arrs: T[][]): T[] {
+      const out: T[] = [];
+      const max = Math.max(0, ...arrs.map(a => a.length));
+      for (let i = 0; i < max; i++) for (const a of arrs) if (i < a.length) out.push(a[i]);
+      return out;
+    }
+
+    async function load() {
+      try {
+        const perFolder = await Promise.all(folders.map(listFolder));
+        images = interleave(perFolder);
+
+        if (images.length === 0) { grid.innerHTML = ''; showStatus('Brak zdjęć w tej kategorii.'); return; }
+        renderGrid();
+      } catch (err) {
+        console.error(err);
+        grid.innerHTML = '';
+        showStatus('Nie udało się załadować galerii.');
+      }
+    }
+
+    function renderGrid() {
+      grid.innerHTML = '';
+      images.forEach((src, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'group relative block w-full aspect-[4/5] overflow-hidden bg-stone-900';
+        btn.setAttribute('aria-label', label);
+
+        const el = document.createElement('img');
+        el.src = src;
+        el.alt = label;
+        el.className = 'w-full h-full object-cover group-hover:scale-105 transition-transform duration-700';
+        el.loading = 'lazy';
+        el.onerror = () => btn.remove();
+
+        btn.appendChild(el);
+        grid.appendChild(btn);
+        btn.addEventListener('click', () => openLightbox(i));
+      });
+    }
+
+    load();
+
+    // ── Lightbox ──────────────────────────────────────────────────────────────
+    const lightbox = document.getElementById('lightbox')!;
+    const lbImg = document.getElementById('lb-img') as HTMLImageElement;
+    const lbCounter = document.getElementById('lb-counter')!;
+    let lbIdx = 0;
+
+    function openLightbox(i: number) { lbIdx = i; showLb(); lightbox.classList.remove('hidden'); document.body.style.overflow = 'hidden'; }
+    function showLb() { lbImg.src = images[lbIdx]; lbImg.alt = label; lbCounter.textContent = `${lbIdx + 1} / ${images.length}`; }
+    function closeLb() { lightbox.classList.add('hidden'); document.body.style.overflow = ''; lbImg.src = ''; }
+    const prev = () => { lbIdx = (lbIdx - 1 + images.length) % images.length; showLb(); };
+    const next = () => { lbIdx = (lbIdx + 1) % images.length; showLb(); };
+
+    document.getElementById('lb-close')!.addEventListener('click', closeLb);
+    document.getElementById('lb-prev')!.addEventListener('click', prev);
+    document.getElementById('lb-next')!.addEventListener('click', next);
+    lightbox.addEventListener('click', e => { if (e.target === lightbox) closeLb(); });
+    document.addEventListener('keydown', e => {
+      if (lightbox.classList.contains('hidden')) return;
+      if (e.key === 'Escape') closeLb();
+      if (e.key === 'ArrowLeft') prev();
+      if (e.key === 'ArrowRight') next();
+    });
+    let tx = 0;
+    lightbox.addEventListener('touchstart', e => { tx = e.touches[0].clientX; }, { passive: true });
+    lightbox.addEventListener('touchend', e => {
+      const dx = e.changedTouches[0].clientX - tx;
+      if (Math.abs(dx) > 50) { dx < 0 ? next() : prev(); }
+    });
+  </script>
+</Layout>

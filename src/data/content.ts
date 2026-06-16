@@ -29,6 +29,12 @@ export const services = [
     description: 'Indywidualne sesje w pełni dopasowane do Twoich potrzeb i wizji.',
     icon: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>`,
   },
+  {
+    id: 'inne',
+    name: 'Każda inna sesja',
+    description: 'Masz pomysł na coś wyjątkowego? Każdą sesję dopasuję do Twoich potrzeb — po prostu napisz.',
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`,
+  },
 ];
 
 export const galleryCategories = [

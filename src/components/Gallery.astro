@@ -41,30 +41,22 @@
 </div>
 
 <style>
-  .filter-btn { transition: all 0.2s; border-color: #44403c; color: #a8a29e; }
-  .filter-btn:hover { border-color: #b08d57; color: #b08d57; }
-  .filter-btn.active { border-color: #b08d57; color: #b08d57; }
+  /* :global — the filter buttons are created at runtime by JS, so they don't
+     receive Astro's scoped data attribute and scoped selectors wouldn't match. */
+  :global(.filter-btn) { transition: all 0.2s; border-color: #44403c; color: #a8a29e; }
+  :global(.filter-btn:hover) { border-color: #b08d57; color: #b08d57; }
+  :global(.filter-btn.active) { background-color: #b08d57; border-color: #b08d57; color: #1c1917; }
+  :global(.filter-btn.active:hover) { color: #1c1917; }
   #lightbox:not(.hidden) { display: flex; }
 </style>
 
 <script>
+  import { categories, labelFor } from '../data/categories';
+
   const PREVIEW_COUNT = 6;   // random photos across all categories in the default view
-  const CATEGORY_LIMIT = 6;  // photos shown on-page per category (rest in lightbox)
+  const CATEGORY_LIMIT = 6;  // photos shown on-page per category (rest open the category page)
   const IMAGE_RE = /\.(jpg|jpeg|png|webp|gif|avif)$/i;
   const GALLERY_BASE = '/images/gallery/';
-
-  // Folder slug -> display name (folders are lowercase/unaccented)
-  const LABELS: Record<string, string> = {
-    rodzine: 'Rodzinne',
-    plenerowe: 'Plenerowe',
-    ciazowe: 'Ciążowe',
-    slubne: 'Ślubne',
-    kobiece: 'Kobiece',
-    noworodkowe: 'Noworodkowe',
-    swieta: 'Świąteczne',
-    urodziny: 'Urodziny',
-  };
-  const labelFor = (slug: string) => LABELS[slug] ?? slug.charAt(0).toUpperCase() + slug.slice(1);
 
   interface NginxEntry { name: string; type: 'file' | 'directory'; mtime: string; size: number; }
   interface GalleryImage { category: string; label: string; src: string; }
@@ -75,6 +67,14 @@
 
   const byCategory = new Map<string, GalleryImage[]>();
   let previewImages: GalleryImage[] = [];
+
+  // Round-robin merge so a multi-folder category shows a mix of both
+  function interleave<T>(arrs: T[][]): T[] {
+    const out: T[] = [];
+    const max = Math.max(0, ...arrs.map(a => a.length));
+    for (let i = 0; i < max; i++) for (const a of arrs) if (i < a.length) out.push(a[i]);
+    return out;
+  }
 
   function randomSample<T>(arr: T[], n: number): T[] {
     const copy = [...arr];
@@ -109,10 +109,10 @@
       document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       if (id === 'all') {
-        renderGrid(previewImages, previewImages);
+        renderGrid(previewImages, previewImages, null);
       } else {
         const full = byCategory.get(id) ?? [];
-        renderGrid(full.slice(0, CATEGORY_LIMIT), full);
+        renderGrid(full.slice(0, CATEGORY_LIMIT), full, id);
       }
     });
     return btn;
@@ -122,7 +122,9 @@
 
   // displayImages: tiles shown on the page (a prefix of lbImages)
   // lbImages: the full set the lightbox navigates through
-  function renderGrid(displayImages: GalleryImage[], lbImages: GalleryImage[]) {
+  // categorySlug: when set, the "+N" tile and a "Zobacz wszystkie" link open
+  //   the dedicated category page (/galeria/<slug>) instead of the lightbox.
+  function renderGrid(displayImages: GalleryImage[], lbImages: GalleryImage[], categorySlug: string | null) {
     grid.innerHTML = '';
     if (displayImages.length === 0) {
       showStatus('Brak zdjęć w tej kategorii.');
@@ -131,30 +133,34 @@
     hideStatus();
 
     const hidden = lbImages.length - displayImages.length;
+    const catUrl = categorySlug ? `/galeria/${categorySlug}/` : null;
 
     displayImages.forEach((img, i) => {
-      const btn = document.createElement('button');
-      btn.className = 'group relative block w-full aspect-[4/5] overflow-hidden bg-stone-900';
-      btn.setAttribute('aria-label', img.label);
+      // The last tile, when a category has more photos, links to its full page.
+      const isMoreTile = !!catUrl && hidden > 0 && i === displayImages.length - 1;
+      const tile = document.createElement(isMoreTile ? 'a' : 'button') as HTMLElement;
+      tile.className = 'group relative block w-full aspect-[4/5] overflow-hidden bg-stone-900';
+      tile.setAttribute('aria-label', isMoreTile ? `Zobacz wszystkie – ${img.label}` : img.label);
 
       const el = document.createElement('img');
       el.src = img.src;
       el.alt = img.label;
       el.className = 'w-full h-full object-cover group-hover:scale-105 transition-transform duration-700';
       el.loading = 'lazy';
-      el.onerror = () => btn.remove();
-      btn.appendChild(el);
+      el.onerror = () => tile.remove();
+      tile.appendChild(el);
 
-      // On the last tile, show how many more photos are in the lightbox
-      if (i === displayImages.length - 1 && hidden > 0) {
-        const more = document.createElement('div');
-        more.className = 'absolute inset-0 flex items-center justify-center bg-black/55 text-white font-serif text-2xl tracking-wide transition-colors duration-300 group-hover:bg-black/65';
-        more.textContent = `+${hidden}`;
-        btn.appendChild(more);
+      if (isMoreTile) {
+        (tile as HTMLAnchorElement).href = catUrl!;
+        const overlay = document.createElement('div');
+        overlay.className = 'absolute inset-0 flex items-center justify-center bg-black/55 text-white font-serif text-2xl tracking-wide transition-colors duration-300 group-hover:bg-black/65';
+        overlay.textContent = `+${hidden}`;
+        tile.appendChild(overlay);
+      } else {
+        tile.addEventListener('click', () => openLightbox(i, lbImages));
       }
 
-      grid.appendChild(btn);
-      btn.addEventListener('click', () => openLightbox(i, lbImages));
+      grid.appendChild(tile);
     });
   }
 
@@ -163,10 +169,11 @@
   async function load() {
     try {
       const entries = await listDir(GALLERY_BASE);
-      const EXCLUDED = new Set(['back']);
-      const dirs = entries.filter(e => e.type === 'directory' && !EXCLUDED.has(e.name)).map(e => e.name).sort();
+      const present = new Set(entries.filter(e => e.type === 'directory').map(e => e.name));
+      // Featured categories that have at least one present folder, in defined order
+      const cats = categories.filter(c => c.featured && c.folders.some(f => present.has(f)));
 
-      if (dirs.length === 0) {
+      if (cats.length === 0) {
         showStatus('Brak folderów w galerii. Zamontuj zdjęcia do /images/gallery/');
         filterBar.innerHTML = '';
         grid.innerHTML = '';
@@ -174,14 +181,17 @@
       }
 
       const results = await Promise.allSettled(
-        dirs.map(async cat => {
-          const files = await listDir(`${GALLERY_BASE}${cat}/`);
-          return {
-            cat,
-            images: files
-              .filter(f => f.type === 'file' && IMAGE_RE.test(f.name))
-              .map(f => ({ category: cat, label: labelFor(cat), src: `${GALLERY_BASE}${cat}/${f.name}` })),
-          };
+        cats.map(async cat => {
+          // Aggregate files across all of the category's folders
+          const perFolder = await Promise.all(
+            cat.folders.filter(f => present.has(f)).map(async f => {
+              const files = await listDir(`${GALLERY_BASE}${f}/`);
+              return files
+                .filter(file => file.type === 'file' && IMAGE_RE.test(file.name))
+                .map(file => ({ category: cat.slug, label: cat.label, src: `${GALLERY_BASE}${f}/${file.name}` }));
+            })
+          );
+          return { slug: cat.slug, images: interleave(perFolder) };
         })
       );
 
@@ -189,9 +199,9 @@
       const allImages: GalleryImage[] = [];
       results.forEach(r => {
         if (r.status === 'fulfilled' && r.value.images.length > 0) {
-          byCategory.set(r.value.cat, r.value.images);
+          byCategory.set(r.value.slug, r.value.images);
           allImages.push(...r.value.images);
-          populated.push(r.value.cat);
+          populated.push(r.value.slug);
         }
       });
 
@@ -200,7 +210,7 @@
 
       renderFilters(populated);
 
-      renderGrid(previewImages, previewImages);
+      renderGrid(previewImages, previewImages, null);
 
     } catch (err) {
       console.error(err);

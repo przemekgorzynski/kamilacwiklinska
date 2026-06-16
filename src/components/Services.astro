@@ -10,7 +10,7 @@ import { services } from '../data/content';
       <h2 class="font-serif text-4xl md:text-5xl font-light text-stone-100">Usługi</h2>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-8">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
       {services.map(service => (
         <div class="group flex flex-col items-center text-center p-6 rounded-sm hover:bg-stone-800 transition-colors duration-300">
           <div class="text-gold mb-5 group-hover:scale-110 transition-transform duration-300" set:html={service.icon} />
