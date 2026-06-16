@@ -59,7 +59,7 @@
 
   function startTimer() {
     if (slides.length <= 1) return;
-    timer = setInterval(() => goTo((current + 1) % slides.length), 10000);
+    timer = setInterval(() => goTo((current + 1) % slides.length), 5000);
   }
 
   function buildSlider(srcs: string[]) {

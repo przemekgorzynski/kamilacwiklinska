@@ -14,6 +14,8 @@ FROM nginx:alpine AS runner
 
 COPY --from=builder /app/dist /usr/share/nginx/html
 RUN mkdir -p /usr/share/nginx/html/images/gallery
+# Bake repo photos into the gallery dir (in k8s a host volume mounts over this path)
+COPY --from=builder /app/dist/images/ /usr/share/nginx/html/images/gallery/
 RUN rm /etc/nginx/conf.d/default.conf
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY docker-entrypoint.sh /docker-entrypoint.sh
