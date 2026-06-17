@@ -5,16 +5,28 @@ import { categories, labelFor } from '../../data/categories';
 export function getStaticPaths() {
   return categories.map(c => ({
     params: { kategoria: c.slug },
-    props: { label: c.label, folders: c.folders },
+    props: { label: c.label, folders: c.folders, description: c.description },
   }));
 }
 
-const { label, folders } = Astro.props as { label: string; folders: string[] };
+const { kategoria } = Astro.params;
+const { label, folders, description } = Astro.props as { label: string; folders: string[]; description: string };
+
+const SITE = 'https://kamilacwiklinska.com';
+const breadcrumbLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Strona główna', item: `${SITE}/` },
+    { '@type': 'ListItem', position: 2, name: 'Galeria', item: `${SITE}/#galeria` },
+    { '@type': 'ListItem', position: 3, name: label, item: `${SITE}/galeria/${kategoria}/` },
+  ],
+};
 ---
 
 <Layout
-  title={`${label} – Galeria – Studio Fotograficzne Kamila Ćwiklińska`}
-  description={`Galeria zdjęć z kategorii ${label.toLowerCase()} – Studio Fotograficzne Kamila Ćwiklińska.`}
+  title={`${label} – Galeria | Kamila Ćwiklińska`}
+  description={description}
 >
   <div class="min-h-screen bg-stone-950 text-stone-300">
 
@@ -37,7 +49,10 @@ const { label, folders } = Astro.props as { label: string; folders: string[] };
       <div class="text-center mb-12">
         <p class="text-xs tracking-[0.3em] uppercase text-gold mb-3">Galeria</p>
         <h1 class="font-serif text-4xl md:text-5xl font-light text-stone-100">{label}</h1>
+        <p class="font-sans font-light text-stone-400 max-w-2xl mx-auto text-sm leading-relaxed mt-5">{description}</p>
       </div>
+
+      <script type="application/ld+json" set:html={JSON.stringify(breadcrumbLd)} />
 
       <div id="cat-status" class="hidden text-center text-stone-400 text-sm py-12"></div>
 
