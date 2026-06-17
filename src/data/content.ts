@@ -130,7 +130,7 @@ export const contact = {
   name: 'Studio Fotograficzne Kamila Ćwiklińska',
   address: 'Plebanka 2A, 87-700 Plebanka',
   phone: '+48 695-982-588',
-  email: 'kontakt@kamilacwiklinska.com',
+  email: 'fotografiakamilacwiklinska@gmail.com',
   social: {
     facebook: 'https://www.facebook.com/profile.php?id=100075784977782',
     instagram: 'https://www.instagram.com/fotografiakamilacwiklinska/',
