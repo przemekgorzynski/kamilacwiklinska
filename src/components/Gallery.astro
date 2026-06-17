@@ -144,7 +144,7 @@
 
       const el = document.createElement('img');
       el.src = img.src;
-      el.alt = img.label;
+      el.alt = `${img.label} – fotografia Kamila Ćwiklińska`;
       el.className = 'w-full h-full object-cover group-hover:scale-105 transition-transform duration-700';
       el.loading = 'lazy';
       el.onerror = () => tile.remove();

@@ -124,7 +124,7 @@ const { label, folders } = Astro.props as { label: string; folders: string[] };
 
         const el = document.createElement('img');
         el.src = src;
-        el.alt = label;
+        el.alt = `${label} – fotografia Kamila Ćwiklińska`;
         el.className = 'w-full h-full object-cover group-hover:scale-105 transition-transform duration-700';
         el.loading = 'lazy';
         el.onerror = () => btn.remove();
